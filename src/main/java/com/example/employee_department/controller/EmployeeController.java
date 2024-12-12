@@ -1,48 +1,62 @@
 package com.example.employee_department.controller;
 
 
-
-import com.example.employee_department.Model.Employee;
 import com.example.employee_department.dto.EmployeeDTO;
+import com.example.employee_department.service.EmployeeReportService;
 import com.example.employee_department.service.EmployeeService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import net.sf.jasperreports.engine.JRException;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+
 @RestController
 @RequestMapping("/api/employees")
+@RequiredArgsConstructor
 public class EmployeeController {
 
-    @Autowired
-    private EmployeeService employeeService;
-    // GET method to get all employees
+    private final EmployeeService employeeService;
+    private final EmployeeReportService employeeReportService;
 
-
-    // Get all employees
-    @GetMapping
+    @GetMapping()
     public List<EmployeeDTO> getAllEmployees() {
         return employeeService.getAllEmployees();
     }
 
-    // Get all employees in a specific department
-    @GetMapping("/department/{departmentId}")
-    public List<Employee> getEmployeesInDepartment(@PathVariable String departmentId) {
-        return employeeService.getEmployeesInDepartment(departmentId);
+    @GetMapping("/{departmentId}")
+    public List<EmployeeDTO> getEmployeesByDepartment(@PathVariable String departmentId) {
+        return employeeService.getEmployeesByDepartment(departmentId);
+    }
+
+    @PostMapping("add/{departmentId}")
+    public EmployeeDTO addEmployee(@PathVariable String departmentId, @RequestBody EmployeeDTO employeeDTO) {
+        return employeeService.addEmployee(departmentId, employeeDTO);
+    }
+
+    @DeleteMapping("/{departmentId}/{employeeId}")
+    public void deleteEmployee(@PathVariable String employeeId) {
+        employeeService.deleteEmployee(employeeId);
     }
 
 
-    // Add a new employee to a department
-    @PostMapping("/add/{departmentId}")
-    public Employee addEmployeeToDepartment(
-            @PathVariable String departmentId,      // Path variable for departmentId
-            @RequestBody Employee employee) {       // Employee object in request body
-        return employeeService.addEmployeeToDepartment(departmentId, employee);
-    }
-    // Delete an employee from a department
-    @DeleteMapping("/department/{departmentId}/employee/{employeeId}")
-    public boolean deleteEmployeeFromDepartment(@PathVariable String departmentId, @PathVariable String employeeId) {
-        return employeeService.deleteEmployeeFromDepartment(departmentId, employeeId);
-    }
+    @GetMapping(value = "/reports", produces = MediaType.APPLICATION_PDF_VALUE)
+    public ResponseEntity<byte[]> generateEmployeeReport() {
+        try {
+            byte[] reportBytes = employeeReportService.generateReport();
 
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            headers.setContentDispositionFormData("filename", "employees-by-department.pdf");
+
+            return new ResponseEntity<>(reportBytes, headers, HttpStatus.OK);
+        } catch (JRException e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 }

@@ -22,10 +22,8 @@ public class Department {
     private String id;
     private String name;
     private String location;
-    // Initialize the employees list to prevent NullPointerException
-    @OneToMany(mappedBy = "department", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<Employee> employees = new ArrayList<>();// Initialize here
 
-    // Constructors, Getters, Setters
+    @OneToMany(mappedBy = "department", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Employee> employees;
 
 }

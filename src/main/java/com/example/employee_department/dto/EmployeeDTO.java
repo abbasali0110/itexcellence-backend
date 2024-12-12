@@ -16,7 +16,6 @@ public class EmployeeDTO {
     private String email;
     private String position;
     private double salary;
-    // Constructors, Getters, Setters
 
 
 }

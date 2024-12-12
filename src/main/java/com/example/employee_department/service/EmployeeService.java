@@ -9,6 +9,7 @@ import com.example.employee_department.dto.EmployeeDTO;
 
 import com.example.employee_department.repository.DepartmentRepository;
 import com.example.employee_department.repository.EmployeeRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,78 +20,56 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class EmployeeService {
 
-    @Autowired
-    private EmployeeRepository employeeRepository;
+    private final EmployeeRepository employeeRepository;
+    private final DepartmentRepository departmentRepository;
 
-    @Autowired
-    private DepartmentRepository departmentRepository;
 
-    // Method to get all employees
     public List<EmployeeDTO> getAllEmployees() {
-        List<Employee> employees = employeeRepository.findAll();
-        return employees.stream().map(employee -> {
-            return EmployeeDTO.builder()
-                    .id(employee.getId())
-                    .name(employee.getName())
-                    .email(employee.getEmail())
-                    .position(employee.getPosition())
-                    .salary(employee.getSalary())
-                 .build();
-            /*EmployeeDTO employeeDTO = new EmployeeDTO();
-            employeeDTO.setId(employee.getId());
-            employeeDTO.setName(employee.getName());
-            employeeDTO.setEmail(employee.getEmail());
-            employeeDTO.setPosition(employee.getPosition());
-            employeeDTO.setSalary(employee.getSalary());
-            return employeeDTO;*/
-        }).collect(Collectors.toList());
-
+        return employeeRepository.findAll().stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
     }
 
-    // Method to get all employees in a department
-    /*public List<Employee> getEmployeesInDepartment(String departmentId) {
-        return employeeRepository.findByDepartmentId(departmentId);
-    }*/
-    // Get employees by department ID
-    public List<Employee> getEmployeesInDepartment(String departmentId) {
-        Department department = departmentRepository.findById(departmentId).orElse(null);
-        if (department != null) {
-            return department.getEmployees();
-        }
-        return null;
+    public List<EmployeeDTO> getEmployeesByDepartment(String departmentId) {
+        return employeeRepository.findByDepartmentId(departmentId).stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
     }
 
-    // Method to add a new employee in a department
-  /*  public Employee addEmployeeToDepartment(Employee employee, String departmentId) {
-        Department department = departmentRepository.findById(departmentId).orElseThrow(() -> new RuntimeException("Department not found"));
+
+    @Transactional
+    public EmployeeDTO addEmployee(String departmentId, EmployeeDTO employeeDTO) {
+        Department department = departmentRepository.findById(departmentId)
+                .orElseThrow(() -> new RuntimeException("Department not found"));
+
+        Employee employee = new Employee();
+        employee.setId(employeeDTO.getId());
+        employee.setName(employeeDTO.getName());
+        employee.setEmail(employeeDTO.getEmail());
+        employee.setPosition(employeeDTO.getPosition());
+        employee.setSalary(employeeDTO.getSalary());
         employee.setDepartment(department);
-        return employeeRepository.save(employee);
-    }*/
-    // ToDo final Add new employee to a department
-    public Employee addEmployeeToDepartment(String departmentId, Employee employee) {
-        Department department = departmentRepository.findById(departmentId).orElse(null);
 
-        if (department != null) {
-            employee.setDepartment(department);  // Set the Department (Foreign Key)
-            return employeeRepository.save(employee);  // Save Employee with Department
-        }
-
-        return null;  // Return null if department not found
+        return convertToDTO(employeeRepository.save(employee));
     }
 
-    // Delete employee from department
-    public boolean deleteEmployeeFromDepartment(String departmentId, String employeeId) {
-        Department department = departmentRepository.findById(departmentId).orElse(null);
-        if (department != null) {
-            Optional<Employee> employee = employeeRepository.findById(employeeId);
-            if (employee.isPresent() && employee.get().getDepartment().equals(department)) {
-                employeeRepository.delete(employee.get());
-                return true;
-            }
-        }
-        return false;
+    @Transactional
+    public void deleteEmployee(String employeeId) {
+        employeeRepository.deleteById(employeeId);
+    }
+
+
+    private EmployeeDTO convertToDTO(Employee employee) {
+        return EmployeeDTO.builder()
+                .id(employee.getId())
+                .name(employee.getName())
+                .email(employee.getEmail())
+                .position(employee.getPosition())
+                .salary(employee.getSalary())
+                .build();
     }
 
 }

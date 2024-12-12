@@ -19,8 +19,6 @@ public class DepartmentDTO {
     private String name;
     private String location;
     private List<EmployeeDTO> employees;
-  // private List<Map<String, Object>> employees;
-    // Constructors, Getters, Setters
 
 }
 
