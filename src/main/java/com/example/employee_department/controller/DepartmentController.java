@@ -21,11 +21,12 @@ public class DepartmentController {
         return departmentService.getAllDepartments();
     }
 
-    @PostMapping()
-    public List<Department> saveAllDepartments(@RequestBody List<Department> departments) {
-        return departmentService.saveAllDepartments(departments);
-    }
 
+
+    @PostMapping()
+    public DepartmentDTO createDepartment(@RequestBody DepartmentDTO departmentDTO) {
+        return departmentService.createDepartment(departmentDTO);
+    }
 
 }
 

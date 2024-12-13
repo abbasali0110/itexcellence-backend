@@ -7,6 +7,9 @@ import com.example.employee_department.Model.Employee;
 import com.example.employee_department.dto.DepartmentDTO;
 import com.example.employee_department.dto.EmployeeDTO;
 
+import com.example.employee_department.exceptions.DuplicateResourceException;
+import com.example.employee_department.exceptions.ResourceNotFoundException;
+import com.example.employee_department.exceptions.ValidationException;
 import com.example.employee_department.repository.DepartmentRepository;
 import com.example.employee_department.repository.EmployeeRepository;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -34,7 +38,11 @@ public class EmployeeService {
     }
 
     public List<EmployeeDTO> getEmployeesByDepartment(String departmentId) {
-        return employeeRepository.findByDepartmentId(departmentId).stream()
+        Department department = departmentRepository.findById(departmentId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Department not found with id: " + departmentId));
+
+        return department.getEmployees().stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
@@ -42,8 +50,19 @@ public class EmployeeService {
 
     @Transactional
     public EmployeeDTO addEmployee(String departmentId, EmployeeDTO employeeDTO) {
+        // Validate employee data
+        validateEmployee(employeeDTO);
+
+        // Check for duplicate email
+        if (employeeRepository.existsByEmail(employeeDTO.getEmail())) {
+            throw new DuplicateResourceException(
+                    "Employee already exists with email: " + employeeDTO.getEmail());
+        }
+
         Department department = departmentRepository.findById(departmentId)
-                .orElseThrow(() -> new RuntimeException("Department not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Department not found with id: " + departmentId));
+
 
         Employee employee = new Employee();
         employee.setId(employeeDTO.getId());
@@ -58,6 +77,10 @@ public class EmployeeService {
 
     @Transactional
     public void deleteEmployee(String employeeId) {
+        if (!employeeRepository.existsById(employeeId)) {
+            throw new ResourceNotFoundException(
+                    "Employee not found with id: " + employeeId);
+        }
         employeeRepository.deleteById(employeeId);
     }
 
@@ -70,6 +93,27 @@ public class EmployeeService {
                 .position(employee.getPosition())
                 .salary(employee.getSalary())
                 .build();
+    }
+
+    private void validateEmployee(EmployeeDTO employeeDTO) {
+        Map<String, String> errors = new HashMap<>();
+
+        if (employeeDTO.getName() == null || employeeDTO.getName().trim().isEmpty()) {
+            errors.put("name", "Name is required");
+        }
+        if (employeeDTO.getEmail() == null || !employeeDTO.getEmail().matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
+            errors.put("email", "Valid email is required");
+        }
+        if (employeeDTO.getPosition() == null || employeeDTO.getPosition().trim().isEmpty()) {
+            errors.put("position", "Position is required");
+        }
+        if (employeeDTO.getSalary() <= 0) {
+            errors.put("salary", "Salary must be greater than 0");
+        }
+
+        if (!errors.isEmpty()) {
+            throw new ValidationException(errors);
+        }
     }
 
 }

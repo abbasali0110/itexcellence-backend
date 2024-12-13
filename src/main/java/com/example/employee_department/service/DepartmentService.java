@@ -5,6 +5,8 @@ import com.example.employee_department.Model.Employee;
 import com.example.employee_department.dto.DepartmentDTO;
 import com.example.employee_department.dto.EmployeeDTO;
 
+import com.example.employee_department.exceptions.DuplicateResourceException;
+import com.example.employee_department.exceptions.ValidationException;
 import com.example.employee_department.repository.DepartmentRepository;
 import com.example.employee_department.repository.EmployeeRepository;
 import lombok.RequiredArgsConstructor;
@@ -12,11 +14,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.Map;
+import java.util.*;
 
-import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
@@ -32,8 +31,40 @@ public class DepartmentService {
                 .collect(Collectors.toList());
     }
 
-    public List<Department> saveAllDepartments(List<Department> departments) {
-        return departmentRepository.saveAll(departments); // Save all departments
+    public DepartmentDTO createDepartment(DepartmentDTO departmentDTO) {
+        // Validate department data
+        validateDepartment(departmentDTO);
+
+        // Check for duplicate department ID
+        if (departmentRepository.existsById(departmentDTO.getId())) {
+            throw new DuplicateResourceException(
+                    "Department already exists with id: " + departmentDTO.getId());
+        }
+
+        Department department = new Department();
+        department.setId(departmentDTO.getId());
+        department.setName(departmentDTO.getName());
+        department.setLocation(departmentDTO.getLocation());
+
+        return convertToDTO(departmentRepository.save(department));
+    }
+
+    private void validateDepartment(DepartmentDTO departmentDTO) {
+        Map<String, String> errors = new HashMap<>();
+
+        if (departmentDTO.getId() == null || departmentDTO.getId().trim().isEmpty()) {
+            errors.put("id", "Department ID is required");
+        }
+        if (departmentDTO.getName() == null || departmentDTO.getName().trim().isEmpty()) {
+            errors.put("name", "Department name is required");
+        }
+        if (departmentDTO.getLocation() == null || departmentDTO.getLocation().trim().isEmpty()) {
+            errors.put("location", "Department location is required");
+        }
+
+        if (!errors.isEmpty()) {
+            throw new ValidationException(errors);
+        }
     }
 
     private DepartmentDTO convertToDTO(Department department) {
@@ -41,9 +72,11 @@ public class DepartmentService {
         dto.setId(department.getId());
         dto.setName(department.getName());
         dto.setLocation(department.getLocation());
-        dto.setEmployees(department.getEmployees().stream()
-                .map(this::convertEmployeeToDTO)
-                .collect(Collectors.toList()));
+        if(department.getEmployees() != null){
+            dto.setEmployees(department.getEmployees().stream()
+                    .map(this::convertEmployeeToDTO)
+                    .collect(Collectors.toList()));
+        }
         return dto;
     }
 
@@ -56,6 +89,7 @@ public class DepartmentService {
         dto.setSalary(employee.getSalary());
         return dto;
     }
-}
 
+
+}
 
