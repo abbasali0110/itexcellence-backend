@@ -47,6 +47,14 @@ public class EmployeeService {
                 .collect(Collectors.toList());
     }
 
+    // Method to get employee by ID
+    public EmployeeDTO getEmployeeById(String employeeId) {
+
+        Employee employee = employeeRepository.findById(employeeId).orElseThrow(() -> new ResourceNotFoundException(
+                "Department not found with id: " + employeeId));
+
+        return convertToDTO(employee);
+    }
 
     @Transactional
     public EmployeeDTO addEmployee(String departmentId, EmployeeDTO employeeDTO) {
@@ -92,6 +100,7 @@ public class EmployeeService {
                 .email(employee.getEmail())
                 .position(employee.getPosition())
                 .salary(employee.getSalary())
+                .department(employee.getDepartment().getName())
                 .build();
     }
 

@@ -43,6 +43,12 @@ public class EmployeeController {
         employeeService.deleteEmployee(employeeId);
     }
 
+    @GetMapping("/emp/{id}")
+    public EmployeeDTO getEmployeeById(@PathVariable String id) {
+        return employeeService.getEmployeeById(id);
+
+    }
+
 
     @GetMapping(value = "/reports", produces = MediaType.APPLICATION_PDF_VALUE)
     public ResponseEntity<byte[]> generateEmployeeReport() {
